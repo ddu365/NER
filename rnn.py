@@ -39,8 +39,8 @@ class NER_net:
         # y: [batch_size, time_step]
         self.y = tgt
 
-        cell_forward = tf.contrib.rnn.BasicLSTMCell(unit_num)
-        cell_backward = tf.contrib.rnn.BasicLSTMCell(unit_num)
+        cell_forward = tf.nn.rnn_cell.LSTMCell(unit_num, name='basic_lstm_cell')
+        cell_backward = tf.nn.rnn_cell.LSTMCell(unit_num, name='basic_lstm_cell')
         if DROPOUT_RATE is not None:
             cell_forward = DropoutWrapper(cell_forward, input_keep_prob=1.0, output_keep_prob=DROPOUT_RATE)
             cell_backward = DropoutWrapper(cell_backward, input_keep_prob=1.0, output_keep_prob=DROPOUT_RATE)
@@ -75,20 +75,21 @@ def train(net, iterator, sess):
     ckpt = tf.train.get_checkpoint_state(model_path)
     if ckpt is not None:
         path = ckpt.model_checkpoint_path
-        print 'loading pre-trained model from %s.....' % path
+        print('loading pre-trained model from %s.....' % path)
         saver.restore(sess, path)
 
     current_epoch = sess.run(net.global_step)
     while True:
-        if current_epoch > EPOCH: break
+        if current_epoch > EPOCH:
+            break
         try:
             tf_unary_scores, tf_transition_params, _, losses = sess.run(
                 [net.outputs, net.transition_params, net.train_op, net.loss])
 
             if current_epoch % 100 == 0:
-                print '*' * 100
-                print current_epoch, 'loss', losses
-                print '*' * 100
+                print('*' * 100)
+                print(current_epoch, 'loss', losses)
+                print('*' * 100)
 
             # 每隔10%的进度则save一次。
             if current_epoch % (EPOCH / 10) == 0 and current_epoch != 0:
@@ -103,7 +104,7 @@ def train(net, iterator, sess):
             # iterator.next() cannot get enough data to a batch, initialize it.
             # 正常初始化流程
             sess.run(iterator.initializer)
-    print 'training finished!'
+    print('training finished!')
 
 
 def predict(net, tag_table, sess):
@@ -111,10 +112,10 @@ def predict(net, tag_table, sess):
     ckpt = tf.train.get_checkpoint_state(model_path)
     if ckpt is not None:
         path = ckpt.model_checkpoint_path
-        print 'loading pre-trained model from %s.....' % path
+        print('loading pre-trained model from %s.....' % path)
         saver.restore(sess, path)
     else:
-        print 'Model not found, please train your model first'
+        print('Model not found, please train your model first')
         return
 
     # 获取原文本的iterator
@@ -126,7 +127,7 @@ def predict(net, tag_table, sess):
             tf_unary_scores, tf_transition_params = sess.run(
                 [net.outputs, net.transition_params])
         except tf.errors.OutOfRangeError:
-            print 'Prediction finished!'
+            print('Prediction finished!')
             break
 
         # 把batch那个维度去掉
@@ -159,7 +160,7 @@ if __name__ == '__main__':
         DROPOUT_RATE = 1.0
         iterator = get_predict_iterator(src_vocab_table, vocab_size, BATCH_SIZE)
     else:
-        print 'Only support train and predict actions.'
+        print('Only support train and predict actions.')
         exit(0)
 
     tag_table = tag_to_id_table()
@@ -172,5 +173,5 @@ if __name__ == '__main__':
         if action == 'train':
             train(net, iterator, sess)
         elif action == 'predict':
-
             predict(net, tag_table, sess)
+
